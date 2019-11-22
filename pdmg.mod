@@ -32,7 +32,7 @@ var y{i in N, j in N, g in M} binary;
 
 # -- FUNCAO OBJETIVO --
 
-maximize obj: sum {g in M, i in N, j in N:i != j} d[i,j] * y[i,j,g];
+maximize obj: sum {g in M, i in N, j in N:i != j} d[min(i,j), max(i,j)] * y[i,j,g];
 
 # -- RESTRIÇOES --
 
@@ -49,9 +49,11 @@ s.t. maximoIndividuosGrupo{g in M}: sum {i in N} x[i,g] <= b[g];
 s.t. individuosMesmoGrupo{g in M,i in N, j in N: i != j}: x[i,g] + x[j,g] - 1 <= y[i,j,g]; #VERIFICARRRRRR POIS EH RELATIVO AS ARESTAS ENAO AOS VERTICES 
 
 # 8 - garante que cada individuo estara se relacionando em uma equipe g com no minimo a[g] individuos
-s.t. relIndividuoGrupoMin{j in N,g in M}: sum {j in N: i != j} y[i,j,g] >= (a[g] - 1) * x[j,g];
+s.t. relIndividuoGrupoMin{j in N,g in M}: sum {i in N: i != j} y[i,j,g] >= (a[g] - 1) * x[j,g];
 
 # 9 - garante que cada individuo estara se relacionando em uma equipe g com no maximo b[g] individuos
 s.t. relIndividuoGrupoMax{j in N,g in M}: sum {i in N: i != j} y[i,j,g] <= (b[g] - 1) * x[j,g];
+
+
 
 end;

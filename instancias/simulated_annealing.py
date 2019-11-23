@@ -2,6 +2,7 @@ import argparse as parser
 import numpy as np
 import random as rand
 import math
+import time
 
 # Global Variables
 
@@ -35,15 +36,7 @@ class Group:
         for i in range(0,len(self.currentPeople), 1):
             if self.bksContributionByPerson[i] < self.bksContributionByPerson[self.indexOfLeastContributingPerson]:
                 self.indexOfLeastContributingPerson = i
-
-        print(self.indexOfLeastContributingPerson)
-        print(self.currentPeople[self.indexOfLeastContributingPerson])
             
-        
-
-            
-        
-
     def getBKSValue(self, personOne, personTwo, personRelations) -> float:
         valueBKS = 0.0
 
@@ -51,8 +44,9 @@ class Group:
             if relation[0] == personOne and relation[1] == personTwo:
                 valueBKS = relation[2]
                 return valueBKS
-
-
+    
+    def getLeastContributingPersonValueBKS(self) -> float:
+        return self.bksContributionByPerson[self.indexOfLeastContributingPerson]
 
 # Simulated Annealing
 class SimulatedAnnealing:
@@ -69,7 +63,12 @@ class SimulatedAnnealing:
 
         # Problem Variables
         self.maxElapsedTime = 60 * 5
-        self.maxNumberOfIterations = 25
+        self.temperature = 25.0
+        self.temperatureDecreaseValue = 1.0
+        self.numberOfIterations = 25
+
+        #Log Variables
+        self.initialSolutionBKS = 0.0
 
         # Initializing Solution
         self.groups = []
@@ -94,11 +93,8 @@ class SimulatedAnnealing:
             # Calculate BKS of group
             group.calculateBKS(self.personRelations)
             self.currentSolutionBKS += group.BKS
-
-        prettyPrintLine('Test')
-        print(self.groups[0].currentPeople)
-        self.groups[0].calculateBKS(self.personRelations)
-
+        
+        self.initialSolutionBKS = self.currentSolutionBKS
 
     def createGroup(self, isMin):
         for person in self.availablePersons[:]:
@@ -109,8 +105,76 @@ class SimulatedAnnealing:
                     self.availablePersons.remove(person)
                     break
     
+    def generateNeighboor(self) -> (list, float):
+        #Group - Person Index - Total Contributing BKS to the Group
+        personOne = (0, 0, float('inf'))
+        personTwo = (0, 0, float('inf'))
+        
+        prettyPrintLine('Test')
+
+        candidate = self.groups
+        for group in candidate:
+            print(group.currentPeople)
+            print(group.bksContributionByPerson)
+            bksOfLeastContributingPersonInGroup = group.getLeastContributingPersonValueBKS()
+            if bksOfLeastContributingPersonInGroup < personOne[2]:
+                personTwo = personOne
+                personOne = (candidate.index(group), group.indexOfLeastContributingPerson, bksOfLeastContributingPersonInGroup)
+            elif bksOfLeastContributingPersonInGroup < personTwo[2]:
+                personTwo = (candidate.index(group), group.indexOfLeastContributingPerson, bksOfLeastContributingPersonInGroup)
+        
+        # Aqui estou com as pessoas selecionadas 
+        replacedPersonOne = candidate[personOne[0]].currentPeople.pop(personOne[1])
+        print(replacedPersonOne)
+        replacedPersonTwo = candidate[personTwo[0]].currentPeople.pop(personTwo[1])
+        print(replacedPersonTwo)
+        candidate[personOne[0]].currentPeople.append(replacedPersonTwo)
+        candidate[personTwo[0]].currentPeople.append(replacedPersonOne)
+
+        candidateBKS = 0.0
+
+        for group in candidate:
+            group.calculateBKS(self.personRelations)
+            candidateBKS += group.BKS
+
+        return candidate, candidateBKS      
+
     def runEpisode(self):
         # Step one - Vars (max iterations, time elapsed)
+     
+        self.startTime = time.perf_counter()
+
+        # candidate, candidateBKS = self.generateNeighboor()
+        #print(self.initialSolutionBKS)
+        #print(self.currentSolutionBKS)
+        #print(candidateBKS)
+
+        while self.temperature > 0.0:
+            for i in range(self.numberOfIterations):
+                candidate, candidateBKS = self.generateNeighboor()
+                print(candidateBKS)
+                deltaEpsilon = candidateBKS - self.currentSolutionBKS
+
+                if deltaEpsilon > 0:
+                    print('Aceitei melhor')
+                    self.currentSolutionBKS = candidateBKS
+                    self.groups = candidate
+                else:
+                    probability = np.exp(deltaEpsilon/self.temperature)
+                    randomNumber = rand.uniform(0, 1)
+                    if randomNumber <= probability:
+                        print('Accepted Worse')
+                        self.currentSolutionBKS = candidateBKS
+                        self.groups = candidate
+            
+            self.temperature -= self.temperatureDecreaseValue
+
+        print(self.initialSolutionBKS)
+        print(self.currentSolutionBKS)
+        self.elapsedTime = time.perf_counter() - self.startTime
+        self.generateLog()
+
+            
         # Step two - Open file to save logs
         # Step three - Save best BKS for initial solution.
         # Step four - Start time elaped
@@ -123,6 +187,9 @@ class SimulatedAnnealing:
         # Step eleven - Stop elapsed time
         # Step twelve - Save all the shit in a log file
         print('oi')
+
+    def generateLog(self):
+        prettyPrintLine('Generating Log')
 
 # Parsing and Modeling
 def parseFile() -> parser.Namespace:

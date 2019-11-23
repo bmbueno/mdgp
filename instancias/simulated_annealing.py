@@ -11,14 +11,50 @@ logpath = 'resultados/'
 class Group:
     def __init__(self, min, max):
         self.currentPeople = []
-        self.bks = 0
+        self.BKS = 0.0
         self.min = min
         self.max = max
-        self.bksContributionByPerson = [] # Cada pessoa contribui com +X BKS no grupo, esse array vai apontar qual é a pessoa com menos contribuição de BKS.
+        self.bksContributionByPerson = [] # Cada pessoa contribui com +X BKS no grupo
+        self.indexOfLeastContributingPerson = 0 # Indicates least contributing person's in the group currently
+
+    def calculateBKS(self, personRelations):
+        # Calculate the BKS of the group and select contribution by person and etc.
+        self.currentPeople.sort()
+        self.BKS = 0.0
+        self.bksContributionByPerson = [0.0] * len(self.currentPeople) # Starting all bks contributions with 0.
+        for i in range(0, len(self.currentPeople), 1):
+            for j in range(i + 1, len(self.currentPeople), 1):
+                personOne = self.currentPeople[i]
+                personTwo = self.currentPeople[j]
+                bks = self.getBKSValue(personOne, personTwo, personRelations)
+                self.bksContributionByPerson[i] += bks
+                self.bksContributionByPerson[j] += bks
+                self.BKS += bks
+
+        self.indexOfLeastContributingPerson = 0
+        for i in range(0,len(self.currentPeople), 1):
+            if self.bksContributionByPerson[i] < self.bksContributionByPerson[self.indexOfLeastContributingPerson]:
+                self.indexOfLeastContributingPerson = i
+
+        print(self.indexOfLeastContributingPerson)
+        print(self.currentPeople[self.indexOfLeastContributingPerson])
+            
         
 
-# Simulated Annealing
+            
+        
 
+    def getBKSValue(self, personOne, personTwo, personRelations) -> float:
+        valueBKS = 0.0
+
+        for relation in personRelations:
+            if relation[0] == personOne and relation[1] == personTwo:
+                valueBKS = relation[2]
+                return valueBKS
+
+
+
+# Simulated Annealing
 class SimulatedAnnealing:
     def __init__(self, numberOfPersons, numberOfGroups, lowerBounds, upperBounds, personRelations, seed):
         prettyPrintLine('Simulated Annealing')
@@ -32,37 +68,61 @@ class SimulatedAnnealing:
         self.seed = seed
 
         # Problem Variables
-        self.elapsedTime = 0
         self.maxElapsedTime = 60 * 5
         self.maxNumberOfIterations = 25
 
         # Initializing Solution
-        self.availablePersons = []
-        self.availablePersons.extend(range(0, self.numberOfPersons))
         self.groups = []
         for i in range(self.numberOfGroups):
-            group = Group(self.lowerBounds, self.upperBounds)
+            group = Group(self.lowerBounds[i], self.upperBounds[i])
             self.groups.append(group)
 
         self.currentSolutionBKS = 0
 
-        self.createInitialSolution()   
+        self.createInitialSolution()
+
+        self.runEpisode()
 
     def createInitialSolution(self):
         rand.seed(self.seed)
-        randomizedPersons = rand.sample(range(0, self.numberOfPersons), self.numberOfPersons)
-        print(randomizedGroup)
+        self.availablePersons = rand.sample(range(0, self.numberOfPersons), self.numberOfPersons)
 
-        
-        #for person in randomizedPersons:
-        #    self.availablePersons.remove(person)
-        #    for group in self.groups:
-        #        if group.
+        self.createGroup(True) # Guarantee Min of Groups
+        self.createGroup(False) # Guarantee Max of Groups
 
-        # Primeiro garantir que os minimos de todos os grupos estao OK
-        # Depois caso eu ainda tenha pessoas disponiveis eu garanto todos os maximos dos grupos.
-        # Nao vou precisar me preocupar futuramente com essas restrições qnd tiver fazendo swap de pessoas em um grupo.
+        for group in self.groups:
+            # Calculate BKS of group
+            group.calculateBKS(self.personRelations)
+            self.currentSolutionBKS += group.BKS
 
+        prettyPrintLine('Test')
+        print(self.groups[0].currentPeople)
+        self.groups[0].calculateBKS(self.personRelations)
+
+
+    def createGroup(self, isMin):
+        for person in self.availablePersons[:]:
+            for group in self.groups:
+                comparisonType = group.min if isMin else group.max
+                if len(group.currentPeople) < comparisonType:
+                    group.currentPeople.append(person)
+                    self.availablePersons.remove(person)
+                    break
+    
+    def runEpisode(self):
+        # Step one - Vars (max iterations, time elapsed)
+        # Step two - Open file to save logs
+        # Step three - Save best BKS for initial solution.
+        # Step four - Start time elaped
+        # Step five - Start Simulated Annealing
+            # Step six - generate random neighboor switching 2 persons from each group. (See smarter way to chose neighboors)
+            # Step seven - Calculate temp BKS for new solution
+            # Step eight - Test
+                # Step nine - If good solution accept it and go to next iteration
+                # Step ten - If worst solution accept it with SA probability
+        # Step eleven - Stop elapsed time
+        # Step twelve - Save all the shit in a log file
+        print('oi')
 
 # Parsing and Modeling
 def parseFile() -> parser.Namespace:

@@ -1,0 +1,8 @@
+grp = Number Of Groups
+pers = Number Of Persons
+temp = Initial Temperature
+it = Max Number of Iterations
+in_BKS = Initial BKS value for initial generated solution
+out_BKS = Best BKS found, with final solution
+SEED = Seed used in that iteration
+timeElapsed = time elapsed to run algorithm

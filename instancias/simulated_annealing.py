@@ -7,6 +7,7 @@ import time
 # Global Variables
 
 logpath = 'resultados/'
+global fileName
 
 # Group Class
 class Group:
@@ -15,14 +16,14 @@ class Group:
         self.BKS = 0.0
         self.min = min
         self.max = max
-        self.bksContributionByPerson = [] # Cada pessoa contribui com +X BKS no grupo
-        self.indexOfLeastContributingPerson = 0 # Indicates least contributing person's in the group currently
+        self.bksContributionByPerson = []
+        self.indexOfLeastContributingPerson = 0
 
     def calculateBKS(self, personRelations):
         # Calculate the BKS of the group and select contribution by person and etc.
         self.currentPeople.sort()
         self.BKS = 0.0
-        self.bksContributionByPerson = [0.0] * len(self.currentPeople) # Starting all bks contributions with 0.
+        self.bksContributionByPerson = [0.0] * len(self.currentPeople) 
         for i in range(0, len(self.currentPeople), 1):
             for j in range(i + 1, len(self.currentPeople), 1):
                 personOne = self.currentPeople[i]
@@ -33,8 +34,10 @@ class Group:
                 self.BKS += bks
 
         self.indexOfLeastContributingPerson = 0
+        self.leastContributingBKS = float('inf')
         for i in range(0,len(self.currentPeople), 1):
-            if self.bksContributionByPerson[i] < self.bksContributionByPerson[self.indexOfLeastContributingPerson]:
+            if self.bksContributionByPerson[i] < self.leastContributingBKS:
+                self.leastContributingBKS = self.bksContributionByPerson[i]
                 self.indexOfLeastContributingPerson = i
             
     def getBKSValue(self, personOne, personTwo, personRelations) -> float:
@@ -62,10 +65,10 @@ class SimulatedAnnealing:
         self.seed = seed
 
         # Problem Variables
-        self.maxElapsedTime = 60 * 5
-        self.temperature = 25.0
-        self.temperatureDecreaseValue = 1.0
-        self.numberOfIterations = 25
+        self.maxTemperature = 2250.0
+        self.temperature = self.maxTemperature
+        self.temperatureDecreaseValue = 5.0
+        self.numberOfIterations = 50
 
         #Log Variables
         self.initialSolutionBKS = 0.0
@@ -76,10 +79,8 @@ class SimulatedAnnealing:
             group = Group(self.lowerBounds[i], self.upperBounds[i])
             self.groups.append(group)
 
-        self.currentSolutionBKS = 0
-
+        self.currentSolutionBKS = 0.0
         self.createInitialSolution()
-
         self.runEpisode()
 
     def createInitialSolution(self):
@@ -104,18 +105,17 @@ class SimulatedAnnealing:
                     group.currentPeople.append(person)
                     self.availablePersons.remove(person)
                     break
+
+        print(len(self.availablePersons))
     
     def generateNeighboor(self) -> (list, float):
         #Group - Person Index - Total Contributing BKS to the Group
         personOne = (0, 0, float('inf'))
         personTwo = (0, 0, float('inf'))
-        
-        prettyPrintLine('Test')
 
+        #problema ta aqui o index que ta sendo pego nao é o index que eu quero.
         candidate = self.groups
         for group in candidate:
-            print(group.currentPeople)
-            print(group.bksContributionByPerson)
             bksOfLeastContributingPersonInGroup = group.getLeastContributingPersonValueBKS()
             if bksOfLeastContributingPersonInGroup < personOne[2]:
                 personTwo = personOne
@@ -124,10 +124,12 @@ class SimulatedAnnealing:
                 personTwo = (candidate.index(group), group.indexOfLeastContributingPerson, bksOfLeastContributingPersonInGroup)
         
         # Aqui estou com as pessoas selecionadas 
+        print('---------------------------')
+        print('Group One: {} and Group Two: {}'.format(candidate[personOne[0]].currentPeople, candidate[personTwo[0]].currentPeople))
+        print('BKS One: {} \nBKS Two: {}'.format(candidate[personOne[0]].bksContributionByPerson, candidate[personTwo[0]].bksContributionByPerson))
         replacedPersonOne = candidate[personOne[0]].currentPeople.pop(personOne[1])
-        print(replacedPersonOne)
         replacedPersonTwo = candidate[personTwo[0]].currentPeople.pop(personTwo[1])
-        print(replacedPersonTwo)
+        print('Replaced: {} with {}'.format(replacedPersonOne, replacedPersonTwo))
         candidate[personOne[0]].currentPeople.append(replacedPersonTwo)
         candidate[personTwo[0]].currentPeople.append(replacedPersonOne)
 
@@ -136,68 +138,84 @@ class SimulatedAnnealing:
         for group in candidate:
             group.calculateBKS(self.personRelations)
             candidateBKS += group.BKS
+        print('Group One: {} and Group Two: {}'.format(candidate[personOne[0]].currentPeople, candidate[personTwo[0]].currentPeople))
+        print('BKS One: {} \nBKS Two: {}'.format(candidate[personOne[0]].bksContributionByPerson, candidate[personTwo[0]].bksContributionByPerson))
 
-        return candidate, candidateBKS      
+        return candidate, candidateBKS
 
-    def runEpisode(self):
-        # Step one - Vars (max iterations, time elapsed)
-     
+    def generateRandomNeighboor(self) -> (list, float):
+        candidate = self.groups
+    
+        randomGroupOne = int(rand.uniform(0, len(candidate)))
+        randomGroupTwo = randomGroupOne
+        while randomGroupTwo == randomGroupOne:
+            randomGroupTwo = int(rand.uniform(0, len(candidate)))
+        
+        randomPersonOne = int(rand.uniform(0, len(candidate[randomGroupOne].currentPeople) - 1))
+        randomPersonTwo = int(rand.uniform(0, len(candidate[randomGroupTwo].currentPeople) - 1))
+
+
+        replacedPersonOne = candidate[randomGroupOne].currentPeople.pop(randomPersonOne)
+        replacedPersonTwo = candidate[randomGroupTwo].currentPeople.pop(randomPersonTwo)
+        candidate[randomGroupOne].currentPeople.append(replacedPersonTwo)
+        candidate[randomGroupTwo].currentPeople.append(replacedPersonOne)
+
+        candidateBKS = 0.0
+
+        for group in candidate:
+            group.calculateBKS(self.personRelations)
+            candidateBKS += group.BKS
+
+        return candidate, candidateBKS
+
+    def runEpisode(self): 
         self.startTime = time.perf_counter()
-
-        # candidate, candidateBKS = self.generateNeighboor()
-        #print(self.initialSolutionBKS)
-        #print(self.currentSolutionBKS)
-        #print(candidateBKS)
-
         while self.temperature > 0.0:
+            print(self.temperature)
             for i in range(self.numberOfIterations):
-                candidate, candidateBKS = self.generateNeighboor()
-                print(candidateBKS)
-                deltaEpsilon = candidateBKS - self.currentSolutionBKS
-
+                candidate, candidateBKS = self.generateRandomNeighboor()
+                deltaEpsilon = candidateBKS - self.currentSolutionBKS 
+                
                 if deltaEpsilon > 0:
-                    print('Aceitei melhor')
                     self.currentSolutionBKS = candidateBKS
                     self.groups = candidate
                 else:
-                    probability = np.exp(deltaEpsilon/self.temperature)
+                    probability = math.exp(deltaEpsilon/self.temperature)
                     randomNumber = rand.uniform(0, 1)
-                    if randomNumber <= probability:
-                        print('Accepted Worse')
+                    if randomNumber < probability:
                         self.currentSolutionBKS = candidateBKS
                         self.groups = candidate
             
             self.temperature -= self.temperatureDecreaseValue
 
-        print(self.initialSolutionBKS)
-        print(self.currentSolutionBKS)
         self.elapsedTime = time.perf_counter() - self.startTime
+        printDone()
         self.generateLog()
-
-            
-        # Step two - Open file to save logs
-        # Step three - Save best BKS for initial solution.
-        # Step four - Start time elaped
-        # Step five - Start Simulated Annealing
-            # Step six - generate random neighboor switching 2 persons from each group. (See smarter way to chose neighboors)
-            # Step seven - Calculate temp BKS for new solution
-            # Step eight - Test
-                # Step nine - If good solution accept it and go to next iteration
-                # Step ten - If worst solution accept it with SA probability
-        # Step eleven - Stop elapsed time
-        # Step twelve - Save all the shit in a log file
-        print('oi')
 
     def generateLog(self):
         prettyPrintLine('Generating Log')
+        timestamp = '_' + str(int(time.time()))
+        global fileName
+        resultFileName = logpath + str(fileName) + '_Results' + '.txt'
+        self.log_info = open(resultFileName, 'a+')
+        self.log_info.close()
+        self.log_info = open(resultFileName, 'r+')
+        header = 'grp pers temp it in_BKS out_BKS SEED timeElapsed\n'
+        line = self.log_info.readline()
+        if line != header:
+            self.log_info.write(header)
+            self.log_info.flush()
+        string = str(self.numberOfGroups) + " " + str(self.numberOfPersons) + " " + str(self.maxTemperature) + " " + str(self.numberOfIterations) +  " " + '%.3f'%(self.initialSolutionBKS) + " " + '%.3f'%(self.currentSolutionBKS) + " " + str(self.seed) + " " + str(self.elapsedTime) +"\n"
+        self.log_info.write(string)
+        self.log_info.flush()
+        printDone()
 
 # Parsing and Modeling
 def parseFile() -> parser.Namespace:
     prettyPrintLine('Parsing Data')
     myParser = parser.ArgumentParser(description = 'Parser for mdgp problem')
 
-    myParser.add_argument('-f', '--file', help = 'File to be parsed', nargs = 1, type = parser.FileType('r')) 
-    myParser.add_argument('-o', '--output', help = 'Should create output file', action = 'store_true') 
+    myParser.add_argument('-f', '--file', help = 'File to be parsed', nargs = 1, type = parser.FileType('r'))  
     myParser.add_argument('-s', '--seed', help = 'Seed for the problem', type = str)
 
     args = myParser.parse_args()
@@ -209,7 +227,8 @@ def parseFile() -> parser.Namespace:
 def createProblemModel(args) -> (int, int, list, list, list):
     prettyPrintLine('Creating Model')
     file = open(args.file[0].name)
-    shouldCreateOutputFile = args.output
+    global fileName
+    fileName = file.name
     seed = args.seed
 
     firstLine = file.readline()

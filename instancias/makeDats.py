@@ -2,7 +2,7 @@
 def makeDats(fileName):
 
     file = open(fileName + '.txt', 'r')
-    fileDat = open(fileName + '1.dat','w')
+    fileDat = open(fileName + '.dat','w')
 
     fileDat.write('data;\n')
     firstLine = file.readline()
@@ -44,12 +44,20 @@ def makeDats(fileName):
     fileDat.write('param d := \n')
     for line in lines:
         fileDat.write('    ' + line)
-    fileDat.write(';\n')
+    fileDat.write(';\n')   
 
-def main():
-    
-    data = makeDats('Geo_n010_ss_10')
-
+    fileDat.close()
+    file.close() 
 
 if __name__ == "__main__":
-    main()
+     makeDats('Geo_n010_ss_10')
+     makeDats('Geo_n030_ds_08')
+     makeDats('Geo_n060_ss_04')
+     makeDats('RanInt_n010_ds_07')
+     makeDats('RanInt_n010_ss_10')
+     makeDats('RanInt_n012_ss_03')
+     makeDats('RanInt_n030_ss_05')
+     makeDats('RanInt_n060_ds_03')
+     makeDats('RanReal_n010_ss_10')
+     makeDats('RanReal_n060_ss_04')
+    

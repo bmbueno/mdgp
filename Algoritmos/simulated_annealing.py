@@ -6,7 +6,7 @@ import time
 
 # Global Variables
 
-logpath = 'resultados/'
+logpath = 'resultados-SA/'
 global fileName
 
 # Group Class
@@ -67,7 +67,7 @@ class SimulatedAnnealing:
         # Problem Variables
         self.maxTemperature = 2250.0
         self.temperature = self.maxTemperature
-        self.temperatureDecreaseValue = 5.0
+        self.temperatureDecreaseValue = 20.0
         self.numberOfIterations = 50
 
         #Log Variables

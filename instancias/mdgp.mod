@@ -44,7 +44,7 @@ s.t. minimoIndividuosGrupo{g in M}: sum {i in N} x[i,g] >= a[g];
 s.t. maximoIndividuosGrupo{g in M}: sum {i in N} x[i,g] <= b[g];
 
 # 7 - exige que se caso dois individuos i e j estao na mesma equipe y[i,j,g] == 1
-s.t. individuosMesmoGrupo{g in M,i in N, j in N: i != j}: x[i,g] + x[j,g] - 1 <= y[i,j,g]; #VERIFICARRRRRR POIS EH RELATIVO AS ARESTAS ENAO AOS VERTICES 
+s.t. individuosMesmoGrupo{g in M,i in N, j in N: i != j}: x[i,g] + x[j,g] - 1 <= y[i,j,g]; 
 
 # 8 - garante que cada individuo estara se relacionando em uma equipe g com no minimo a[g] individuos
 s.t. relIndividuoGrupoMin{j in N,g in M}: sum {i in N: i != j} y[i,j,g] >= (a[g] - 1) * x[j,g];
